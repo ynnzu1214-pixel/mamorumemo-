@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ドット風暗号メモ帳</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    
+    <style>
+        /* すべての文字、枠線、ボタンを白に統一 */
+        * {
+            box-sizing: border-box;
+            font-family: "DotGothic16", sans-serif;
+            color: #ffffff;
+        }
+
+        body {
+            background-color: black;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 背景のアニメーション（白い四角が昇る仕組み） */
+        .bg-squares {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* 文字の裏側に配置 */
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .bg-squares li {
+            position: absolute;
+            list-shadow: none;
+            display: block;
+            background-color: rgba(255, 255, 255, 0.15); /* ほんのり明るい白の四角 */
+            bottom: -50px;
+            animation: raise 12s infinite linear;
+        }
+
+        /* それぞれの四角の大きさと位置、スピードをバラバラにする設定 */
+        .bg-squares li:nth-child(1) { left: 10%; width: 20px; height: 20px; animation-delay: 0s; animation-duration: 10s; }
+        .bg-squares li:nth-child(2) { left: 25%; width: 35px; height: 35px; animation-delay: 2s; animation-duration: 15s; }
+        .bg-squares li:nth-child(3) { left: 40%; width: 15px; height: 15px; animation-delay: 4s; animation-duration: 8s; }
+        .bg-squares li:nth-child(4) { left: 60%; width: 40px; height: 40px; animation-delay: 0s; animation-duration: 18s; }
+        .bg-squares li:nth-child(5) { left: 75%; width: 25px; height: 25px; animation-delay: 5s; animation-duration: 12s; }
+        .bg-squares li:nth-child(6) { left: 90%; width: 30px; height: 30px; animation-delay: 3s; animation-duration: 14s; }
+
+        /* 下から上へ移動しながら消えていくアニメーション */
+        @keyframes raise {
+            0% {
+                transform: translateY(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-110vh);
+                opacity: 0;
+            }
+        }
+
+        /* コンテナ */
+        .container {
+            width: 100%;
+            max-width: 600px;
+            text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 画面の切り替え設定 */
+        .screen {
+            display: none;
+        }
+        .screen.active {
+            display: block;
+        }
+
+        /* メニューの選択ボタン */
+        .menu-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 15px 0;
+            background-color: rgba(0, 0, 0, 0.7); /* 後ろの四角が透けるように */
+            border: 2px solid #ffffff;
+            font-size: 18px;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.3s;
+        }
+        .menu-button:hover {
+            background-color: #333333;
+        }
+
+        /* メモ入力欄・コード入力欄 */
+        textarea, input[type="text"] {
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ffffff;
+            padding: 10px;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        textarea {
+            height: 200px;
+            resize: none;
+        }
+
+        /* 通常のボタン */
+        .btn {
+            background-color: rgba(0, 0, 0, 0.7);
+            border: 2px solid #ffffff;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background-color: #333333;
+        }
+
+        /* 暗号コード表示エリア */
+        .code-box {
+            margin-top: 20px;
+            border: 2px dashed #ffffff;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .output-code {
+            background-color: #111111;
+            border: 1px solid #ffffff;
+            padding: 10px;
+            word-break: break-all;
+            margin-top: 5px;
+            user-select: all;
+        }
+    </style>
+</head>
+<body>
+
+<ul class="bg-squares">
+    <li></li>
+    <li></li>
+    <li></li>
+    <li></li>
+    <li></li>
+    <li></li>
+</ul>
+
+<div class="container">
+
+    <div id="menuScreen" class="screen active">
+        <h1>▼ モードを選択してください</h1>
+        <button class="menu-button" onclick="showScreen('memoScreen')">[1] メモを新しく書く</button>
+        <button class="menu-button" onclick="showScreen('loadScreen')">[2] コードから読み込む</button>
+    </div>
+
+    <div id="memoScreen" class="screen">
+        <h1>▼ メモ入力</h1>
+        <textarea id="memoArea" placeholder="ここにメモを書いてね..."></textarea>
+        <br>
+        <button class="btn" onclick="saveMemo()">保存する</button>
+        <button class="btn" onclick="goToMenu()">メニューに戻る</button>
+
+        <div id="codeResultBox" class="code-box" style="display: none;">
+            <h3>▼ 生成された復元コード</h3>
+            <p style="font-size: 14px; color: #ccc;">※メモごとに違う規則性の文字（暗号キー）が自動で埋め込まれています</p>
+            <div id="codeOutput" class="output-code"></div>
+        </div>
+    </div>
+
+    <div id="loadScreen" class="screen">
+        <h1>▼ コード解読</h1>
+        <p>復元コードを入力してください：</p>
+        <input type="text" id="codeInput" placeholder="コードをここにペースト">
+        <br>
+        <button class="btn" onclick="loadFromCode()">読み込む</button>
+        <button class="btn" onclick="goToMenu()">メニューに戻る</button>
+    </div>
+
+</div>
+
+<script>
+    // 画面を切り替える関数
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    // メニューに戻る
+    function goToMenu() {
+        document.getElementById('memoArea').value = "";
+        document.getElementById('codeInput').value = "";
+        document.getElementById('codeResultBox').style.display = "none";
+        showScreen('menuScreen');
+    }
+
+    // メモを保存し、独自の規則性を持つコードを生成する
+    function saveMemo() {
+        const memoText = document.getElementById('memoArea').value;
+        if (!memoText) {
+            alert('メモが空っぽです！');
+            return;
+        }
+
+        // 1. メモごとに違うランダムな「規則性の文字（5文字の暗号キー）」を作る
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let secretKey = "";
+        for (let i = 0; i < 5; i++) {
+            secretKey += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        // 2. 文章をコード化（Base64）
+        const base64Text = btoa(unescape(encodeURIComponent(memoText)));
+
+        // 3. 生成した独自の規則性文字（キー）をコードの先頭に合体させる
+        const finalCode = secretKey + "_" + base64Text;
+
+        // 画面に表示
+        document.getElementById('codeOutput').innerText = finalCode;
+        document.getElementById('codeResultBox').style.display = "block";
+
+        alert('保存しました！');
+    }
+
+    // コードからメモを解析して読み込む
+    function loadFromCode() {
+        const fullCode = document.getElementById('codeInput').value.trim();
+        if (!fullCode) {
+            alert('コードを入力してください！');
+            return;
+        }
+
+        try {
+            // コードを規則性文字（キー）と文章データに分解する
+            const parts = fullCode.split("_");
+            if (parts.length !== 2) throw new Error();
+
+            const secretKey = parts[0];  // このメモ固有の規則性文字
+            const base64Text = parts[1]; // 文章データ
+
+            // 元の日本語に戻す
+            const decoded = decodeURIComponent(escape(atob(base64Text)));
+
+            // メモ画面に移動して中身を表示
+            showScreen('memoScreen');
+            document.getElementById('memoArea').value = decoded;
+            
+            // 読み込んだコードとキーも下に再表示しておく
+            document.getElementById('codeOutput').innerText = fullCode;
+            document.getElementById('codeResultBox').style.display = "block";
+
+            alert(secretKey + ' の規則性を解読しました！');
+        } catch (e) {
+            alert('正しいコードではないようです。');
+        }
+    }
+</script>
+
+</body>
+</html>
